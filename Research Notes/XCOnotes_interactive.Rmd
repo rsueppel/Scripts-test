@@ -1,0 +1,392 @@
+---
+title: "XCO research notes"
+output:
+  html_document:
+    css: EXA_style.css
+    number_sections: yes
+    toc: yes
+runtime: shiny
+params:
+  path: !r as.character("rdt")
+  filename: !r as.character("xco_dfm_allfinal.RData")
+  startd: !r as.Date("2001-01-01")
+  cids: !r as.character(c("BRT", "ALM", "CPR", "LED", "NIC", "ZNC", "GLD", "SIV", "CFE", "COR", "CTN", "SGR", "SOY", "WHT", "CAT", "HOG"))
+  dependent: !r as.character("CO_XRN_H")
+---
+
+```{r setup, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+
+  require(Management)
+
+  f_setup(path = params$path , createdoc = FALSE)
+  load(file=paste(folder.out, params$filename, sep=""))
+  startd <- params$startd
+  id.sel <- params$cids
+  dep.sel <- params$dependent
+  df.sel <- window(dfm.allfinal, start = params$startd)
+
+```
+
+#XCO research notes
+
+##Basic ideas and theory
+
+XCO takes futures positions in one type of commodity versus a basket. Both legs are normalized to the same expected standard deviations.
+The expected market beta of the relative position is hedged using a global directional risk basket.  
+  
+The universe of <u>liquid commodities that can be traded for relative value encompasses five groups</u>: (i) base metals (aluminium, copper, zinc,
+nickel, lead), (ii) precious metals (gold, silver), (iii) agricultural products (corn, wheat, soybean, coffee, sugar, cotton), (iv) livestock
+(lean hogs, live cattle), (v) energy (Brent, WTI, US natural gas).
+For now U.S. crude and natural gas have been suspended due to their pronounced idiosyncrasies and strong dependence on local infrastructure.  
+  
+An important difference between XCO and the other cross styles is that <u>the underlying assets are group-wise very heterogeneous</u>.
+For example, base metals as a group carries very different characteristics compared to agricultural goods. It follows that this strategy, like no
+other, relies on factors with selective impact (i.e. that only influence certain cross sections) or ad-hoc section-specific coefficients for a
+global factor.  
+  
+In general, the decision on long and short positions are based on four types of factors:  
+  
+* __Valuation gap__: These factors should indicate gaps between a commodity futures price and its estimated fair value. It is practically
+impossible to estimate a sustainable clearing price. However, four concepts seem to have potential. 
+    + __Soft arbitrage relations__: Many commodities have substitutes that are physically or spatially separated from the underlying of a futures
+    contract. Due to frictions, short-term divergence can occur and be sizeable. However, over the medium-term they should act as an _"elastic
+    band"_, pulling substitutes' price back closer together, through mechanisms like physical transport, supply adjustments, or storage
+    adjustments.  
+    
+    + __The divergent impact of macroeconomic changes__: Some commodities are more sensitive to the global business cycle than others.
+    To the extent that the market does not immediately and correctly account for changing business cycle indicators (particularly in the
+    manufacturing sector), profit opportunities arise.  
+    
+    + __Hedge value change__: In times of exogenous commodity price shocks, being long commodities provides a hedge against related inflation and
+    terms-of-trade pressure. Put simply, negative correlation gives commodity futures a hedge value. Hence, changes in correlation can lead to
+    sluggish adjustment in positions and underperformance.  
+    
+    + __Crop cycles__: Plausible patterns of supply responses to past price developments can improve forecast of subsequent medium-term price
+    trends in the agricultural commodity price space.  
+    
+* __Implicit subsidies__: In the case of commodities, these are effectively <u>premiums being paid by industrial suppliers and consumers</u>: 
+Unlike purely financial assets, commodities involve physical suppliers and consumers.
+These participants act on considerations beyond standard portfolio optimization. For example, commodity producers have a preference for future
+price certainty and may offer a discount on futures prices.
+Analogously, commodity consumers may be more averse to supply risk and hence prefer to buy spot (or the physical) at a premium to futures prices.
+These effects often manifest in a bias of the futures curve, via-a-vis a simple financial equilibrium and, thereby, offer a profit opportunity for
+financial investors.  
+  
+* __Setback risk__: Setback risk factors might apply to conventional CTA signals  and conventional carry measures. This needs more work.
+A setback risk indicator could be positioning indicators, which are more widely available than for other asset classes and can serve as a direct
+indicator of setback risk.
+  
+* __Distortion payback__: This factor is generally defined as the expected correction to a non-fundamental temporary price change. 
+Changes in risk factors (such as beta and volatility) can trigger institutional selling and buying, following rigid risk management rules or
+investment mandates. In addition, the hedge value of commodity positions may lead to dislocations.  
+  
+Many huge relative price moves in commodities ultimately reflect changes in underlying physical conditions that are beyond the scope of macro
+trading. Typically, these relate to supply side shocks, such as weather, epidemics, political events, or fund closures. Therefore, tight
+concentration limits of exposure in a specific commodity or a commodity group are of the essence.  
+  
+  
+The reduced-form factor structure is as follows:  
+1. Excess real yields  
+2. Short-term inflation dynamics  
+3. Private credit dynamics  
+  
+  
+## Target return properties
+
+Commodity contracts display significant differences in price volatility, supporting normalization of positions as a preparatory step. Normalized
+returns look reasonably homogeneous across sections. The tails of distribution have been fat (with excess kurtosis at 1.8). There has been no sign
+of first-order autocorrelation for the group on average. However, there has been 23% first-order autocorrelation in Brent and 20% is sugar.  
+  
+Cumulative normalized commodity returns have been positive since 1999, with <u>pronounced cycles and occasional drastic adjustments</u>.
+Brent crude oil showed a proclivity to losing 5-year positive return gains in the space of a few months. As to base metals, despite their
+pronounced short-term correlation they displayed remarkably diverse long-term performance. Gold and silver appear to have been driven by a single
+mega-cycle, possibly accentuated by fears over quantitative easing in the post-crisis years. Corn-belt crops, like base metals, posted divergent
+long-term trends, with soy gaining and wheat losing quite consistently over the past 15 years. Livestock posted the most irregular patterns with
+no clear trend and massive occasional price adjustments. The latter would be very hard to "risk manage".  
+  
+  
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=8, fig.width=8} 
+
+  # Whisker plot of CO_XR and CO_XRN
+  loc.tgt <- c("CO_XR", "CO_XRN")
+
+  shinyApp(
+    ui = fluidPage(
+      selectInput("tgt_select", label = "Select return", choices = loc.tgt, selected=id.sel[1]), plotOutput("selection")),
+    server = function(input, output){
+      output$selection <- renderPlot({
+        boxplot(coredata(df.sel[, paste(id.sel, input$tgt_select, sep="_")]), main=input$tgt_select, horizontal=T, names=id.sel)
+      })
+      }, options = list(heights=500))
+  
+  # Log-cumulative returns plot of CO_XRN
+  loc.dep <- c("CO_XR")
+  df.cum <- merge(df.sel, setNames(do.call(merge, lapply(df.sel[, as.vector(outer(id.sel, loc.dep, paste, sep="_"))], 
+                                                            function(x) log(cumprod(1+na.trim(x/100))))),
+                                     paste(as.vector(outer(id.sel, loc.dep, paste, sep="_")), "CUM", sep="_")))
+  shinyApp(
+    ui = fluidPage(
+      selectInput("cs_select", label = "Select asset", choices = id.sel, selected=id.sel[1]), plotOutput("selection")),
+    server = function(input, output){
+      output$selection <- renderPlot({
+          f_comove(df.cum, input$cs_select, paste(loc.dep, "CUM", sep="_"), bm="GLB", dax=F, t=paste("Log of ", loc.dep, "_CUM", sep=""),
+                   leg1=NULL, leg2=NULL)
+      })
+      }, options = list(heights=500))
+```
+  
+  
+<u>If commodity positions are hedged against global directional risk, they no longer post a positive return over the past 15 years.</u> 
+Put differently, positive returns on commodity futures are probably accounted for by a premium charged for directional market exposure.
+Indeed, agricultural commodities mostly posted long-term losses. Base metals were flat, with aluminium and nickel posting massive long-term
+declines.  
+  
+```{r target-ret2, echo=FALSE, warning=FALSE, message=FALSE, fig.height=8, fig.width=8} 
+
+  # Whisker plot of CO_XRN_H
+  boxplot(coredata(df.sel[, paste(id.sel, "CO_XRN_H", sep="_")]), main="CO_XR", horizontal=T, names=id.sel)
+
+  # Log-cumulative returns plot of CO_XRN vs. CO_XRN_H
+  loc.dep <- c(dep.sel, "CO_XRN")
+  df.cum <- merge(df.sel, setNames(do.call(merge, lapply(df.sel[, as.vector(outer(id.sel, loc.dep, paste, sep="_"))], 
+                                                            function(x) log(cumprod(1+na.trim(x/100))))),
+                                     paste(as.vector(outer(id.sel, loc.dep, paste, sep="_")), "CUM", sep="_")))
+  
+  shinyApp(
+    ui = fluidPage(
+      selectInput("cs_select", label = "Select asset", choices = id.sel, selected=id.sel[1]), plotOutput("selection")),
+    server = function(input, output){
+      output$selection <- renderPlot({
+          f_comove(df.cum, input$cs_select, paste(loc.dep, "CUM", sep="_"), bm="GLB", dax=F, t=paste("Log of ", loc.dep, "_CUM", sep=""),
+                   leg1=NULL, leg2=NULL)
+      })
+      }, options = list(heights=500))
+```
+
+There has been on <u>average positive correlation across all groups of commodities</u>, i.e. crude oil (OIL), industrial metals (IDM), precious
+metals (PRM), U.S. corn belt crops (CBC), coffee & sugar (CFS), and livestock (LVS). However, not all correlations have been high, as the below
+pearson correlation coefficient matrix shows. Livestock has been almost uncorrelated with the other categories. Many other group cross
+correlations have been in a 20-30% range.  
+
+```{r target-correl, echo=FALSE, warning=FALSE, message=FALSE, results='asis'} 
+
+  # Correlation table of commodities groups
+  dfd.ptf <- merge(
+    f_panav(df.sel, cids = c("BRT"), cats = c("CO_XRN"), v.wvs = NULL, avname="OIL"),
+    f_panav(df.sel, cids = c("ALM", "CPR", "LED", "NIC", "ZNC"), cats = c("CO_XRN"), v.wvs = NULL, avname="IDM"),
+    f_panav(df.sel, cids = c("GLD", "SIV"), cats = c("CO_XRN"), v.wvs = NULL, avname="PRM"),
+    f_panav(df.sel, cids = c("COR", "WHT", "SOY", "CTN"), cats = c("CO_XRN"), v.wvs = NULL, avname="CBC"),
+    f_panav(df.sel, cids = c("CFE", "SGR"), cats = c("CO_XRN"), v.wvs = NULL, avname="CFS"),
+    f_panav(df.sel, cids = c("CAT", "HOG"), cats = c("CO_XRN"), v.wvs = NULL, avname="LVS"))
+  cor.tab <- as.table(round(cor(dfd.ptf), 3))
+  #cor.tab <- cbind(rownames(cor.tab), cor.tab)[,-1]
+  cor.tab[col(cor.tab)>=row(cor.tab)] <- ""
+  cor.tab <- cor.tab[-1,-6]
+  print(knitr::kable(as.array(cor.tab), caption = NULL, table.attr='class="flat-table"'))
+  
+```
+    
+    
+Across sections, intra-group correlation coefficients become very high, up to a 62-73% correlation range for the top five. Yet average correlation
+has been just 26%. This is below the 31% average cross-correlation for EM FX forwards.  
+  
+One can estimate GDRB betas for normalized returns, based on daily, weekly, and monthly frequencies in equal weights and with intuitive and
+exponentially decaying look-back windows. <u>Directional hedging based on these betas has been effective in lowering the out-of-sample correlation
+of returns with the basket. The ratio of hedged versus unhedged rolling correlations was 57%</u> and ratio of hedged to unhedged standard
+deviations was 95%. Any of the individual frequencies results in higher ratios.  
+  
+Betas have on average been positive for all commodities (with copper being the highest and lean hogs being the lowest) and only occasionally
+strayed into negative territory. There have been violent swings of estimated betas in the past for many commodities. Brent shifted from being
+uncorrelated to positive risk correlation after the great financial crisis. 
+On the whole signs and measure of market dependence of most commodities seems to have increase overtime (due presumably to financialization), but
+remains circumstantial.  
+  
+```{r target-beta, echo=FALSE, warning=FALSE, message=FALSE, fig.height=8, fig.width=8} 
+  # Whisker plot of CO_XRN_H
+  boxplot(coredata(df.sel[, paste(id.sel, "CO_BETAN", sep="_")]), main="CO_BETAN", horizontal=T, names=id.sel)
+
+  shinyApp(
+    ui = fluidPage(
+      selectInput("asset_select", label = "Select asset", choices = id.sel, selected=id.sel[1]), plotOutput("selection")),
+    server = function(input, output){
+      output$selection <- renderPlot({
+          f_comove(df.sel, input$asset_select, "CO_BETAN", bm="GLB", dax=F, t=paste(id.sel, "CO_BETAN", sep="_"), leg1=NULL, leg2=NULL)
+      })
+      }, options = list(heights=500))
+  
+  
+```
+  
+## Factors overview
+
+## Indicators
+
+### Subsidy: Calibrated carry measures
+
+__*Theoretical link*__
+  
+Carry in this context is simply the log ratio of the first and second future price. It is considered to be a proxy for the curve shape.
+A positive carry means that the curve is in backwardation, and holding future turns a profit if the spot price and the overall curve remain
+unchanged. A negative carry implies that the curve is in contango, and holding the front future incurs a loss if all prices remain steady.
+The indicative nature of such a carry depends on the type of commodity, particular its ease of storage, but seems to be valid for most cases.  
+  
+* If a __commodity has (almost) no storage cost__, its curve is formed similar to that of a zero bond. In a pure financial equilibrium a futures
+price would simply be equal to the spot price plus the cost of funding and the (negligible) cost of storage. In functioning markets the relation
+would always hold and carry would have no indicative value. Consequently, <u>without serious frictions in markets there can be no carry-based
+value generation</u>. This should be the case for gold and silver.  
+  
+* If a __commodity has modest storage costs__, <u>the curve will still be affected by financial arbitrage, but will also be influenced by the
+willingness of commodity producers or consumers to pay a premium or accept a discount on either the spot or the futures price</u>.
+For example, the consumers of copper may be willing to pay a premium on the spot price to have easy access to the physical material, thereby
+causing positive carry for futures holders (convenience yield). Similarly, producers may be willing to sell future output at a discount, causing a
+similar effect. To the extent that consumers and producers pay for convenience or insurance services, a profit opportunity arises for financial
+investors. This should hold true for base metals and crude.  
+  
+* If a __commodity has high storage costs__ but can still be warehoused, <u>the curve is more segmented and more strongly influenced by storage
+costs </u> and should on average show a tendency towards contango in the front end. The segmentation is because physical traders would often find
+it expensive to store and wait, weakening the link between points in time on the curve. The contango is because physical traders and "storers"
+require the futures price to be significantly above the spot price to compensate for storage costs. Importantly, the futures price sur-charge that
+arises from the storage cost savings is still a valid discount on the future from the angle of the financial investor. Put differently, the
+financial investor would still predicate a profitable short on it, because unlike physical traders it does not forgo any storage cost savings. The
+same applies to all other motives of suppliers and consumers to pay a premium or accept a discount that differentiates the futures price from the
+expected spot price. This should apply to many agricultural commodities.
+
+* If a __commodity is impossible__ to store markets are segmented. In this case, physical traders will predominantly transact for the time the
+commodity is delivered or consumed, with little consideration of storage economics. The prices along the curve will be driven by final demand and
+supply and expectations thereof. To be sure, <u>producers and consumers may pay a premium similarly as in the case of storable commodities.
+However, it is hard to quantify the premium and isolate it from genuine demand-supply dynamics</u>. One way of mitigating the noise is seasonal
+adjustment and moving average formation (since premiums are often more structural).  
+  
+The bottom line is that carry is a valid indicator for most commodities but may require some theory led adjustments to account for the varying
+influences of storage economics. 
+
+__*Example for premium paid: Commodity prices and convenience yield*__  
+  
+In the theory of commodity storage, <u>the convenience yield is a benefit that accrues to the holder of an inventory</u>. Commodity inventories
+have an option value as they allow a consumer (such as a manufacturer) to meet unexpected demand for his produced good. They also allow overcoming
+situations of aggregate stock-out or disruptions in the supply chain. Gorton et al. (2012) empirically document <u>the convenience yield of 31
+com-modities and find that it is a decreasing, non-linear function of inventories</u>. A high level of convenience yield, due to a low level of
+aggregate inventories, precedes a decrease in the price of the commodity as inventories return to their normal level. In the model of rational
+commodity pricing of Pindyck (1993) commodity convenience yields are forward-looking variables that incorporate information about future supply
+and demand conditions. It is weaker for commodities that are easy to store such as industrial metals and stronger for energy or agricultural
+commodities with strong seasonal factors. 
+  
+The convenience yield is typically calculated net of storage costs. Some authors simply infer it from the following relation:
+$F = (1+r)*S-CY => CY = (1+r)*S-F$ ; where F is the futures price, S the spot price of the commodity, r the opportunity rate of interest, and CY
+the convenience yield.  
+  
+A complementary aspect of the relationship between commodity spot and futures prices is the theory of normal backwardation (see Keynes, 1930;
+Hicks, 1939), which emphasizes the risk premium earned by risk-averse investors for the uncertainty on future spot prices. According to this
+theory, current futures prices are set at a discount (D) to the expected future spot price E[S].  
+  
+$F = E[S]-D$
+  
+From this follows that expected commodity price changes are explained by three factors: capital cost (the higher the less inventory is held and
+the more future price increases), convenience yield (the higher, the more inventory is held), and supplier risk aversion (the higher, the lower
+the accepted and market futures price, which through the storage cost-benefit relation also reduces the spot price).  
+  
+$E[S] = r*S-CY+D$
+  
+A useful empirical characteristic of commodity convenience yields for forecasting commodity currencies is that they are persistent but stationary
+variables, whereas commodity prices are generally non-stationary.
+
+[http://www.nber.org/papers/w13249.pdf]
+
+__*Indicators*__
+  
+__Normalized carry (CO_CRYNT)__: This is the log-ratio of the first and second futures price, annualized, expressed in percentage points and
+truncated at the 10% threshold. Grains and softs commodities carries have been seasonally adjusted, whereas easier to store hard commodities (base
+metals, precious metals, Brent) have not. 
+Alternatives are 3-month averages (CO_CRYN_3MAT), to filter out convenience yield from other factors, and hedged carries to bring the implied
+subsidy more closely in line with returns (CO_CRYN_HT, CO_CRYN_H_3MAT).
+Truncating carries has had a massive impact, particularly in markets with low storability (chart below), and yet, heterogeneity across carries
+remains massive. There has been significant cross-sectional correlation with subsequent non-relative returns, but not much intertemporal
+correlation.  
+  
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='asis'} 
+  #fig.height=15, fig.width=15
+  
+  all.cats <- c("CO_CRYNT", "CO_CRYN_HT", "CO_CRYN_3MAT", "CO_CRYN_H_3MAT")
+  
+  for(i in 1:length(all.cats)){
+    
+    cat = all.cats[i]
+    
+    # Summary table
+    singtab <- f_generaltable(df=df.sel, cids=id.sel, cat=cat)
+    print(knitr::kable(singtab, caption = NULL, table.attr='class="flat-table"'))
+    
+    # Predictive Table
+    l.predective <- f_predtable(df=df.sel, cids=id.sel, cat=cat, dep=dep.sel)
+    predtab <- l.predective[[1]]
+    print(knitr::kable(predtab[1:2, ], caption = NULL, table.attr='class="flat-table"'))
+  }
+  
+```
+
+    
+__*Charts*__
+
+Normiliazed carries display extreme heterogeneity, which is alleviated by the truncation at 10%. This affects mostly agricultural commodities,
+which are generally in contango (negative carry) but on occasion (market stress) display large positive carries (positive carries).  
+  
+```{r target-carry, echo=FALSE, warning=FALSE, message=FALSE, fig.height=8, fig.width=8} 
+  
+  # Whisker plot of CO_CRYN and CO_CRYNT
+  cat.loc <- c("CO_CRYN", "CO_CRYNT")
+
+  shinyApp(
+    ui = fluidPage(
+      selectInput("cat_select", label = "Select factor", choices = loc.tgt, selected=id.sel[1]), plotOutput("selection")),
+    server = function(input, output){
+      output$selection <- renderPlot({
+        boxplot(coredata(df.sel[, paste(id.sel, input$cat_select, sep="_")]), main=input$cat_select, horizontal=T, names=id.sel)
+      })
+      }, options = list(heights=500))
+  
+  # Comovement plots of CO_XRN vs. CO_XRN_H
+  shinyApp(
+    ui = fluidPage(
+      selectInput("asset_select", label = "Select asset", choices = id.sel, selected=id.sel[1]), plotOutput("selection")),
+    server = function(input, output){
+      output$selection <- renderPlot({
+          f_comove(df.sel, input$asset_select, cat.loc, bm="GLB", dax=F, t=id.sel, leg1=NULL, leg2=NULL)
+      })
+      }, options = list(heights=500))
+    
+    
+
+```
+  
+__*Predictive power*__  
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='asis'}
+  l.pnl <- list()
+  for(i in 1:length(all.cats)){
+    l.predective_RZ <- f_predtable(df=df.sel, cids=id.sel, cat=paste(all.cats[i], "RZ", sep=""), dep=paste(dep.sel, "R", sep=""))
+    predtab_RZ <- l.predective_RZ[[1]]
+    l.pnl[[i]] <- l.predective_RZ[[2]]
+    print(knitr::kable(predtab_RZ, caption = NULL, table.attr='class="flat-table"'))
+  }
+  names(l.pnl) <- all.cats
+```
+
+One can construct 3-month averages of trimmed carries, based on the argument that convenience yields plausibly come in long trends or are even structural. Long-term Sharpe ratios have indeed been slightly higher.  
+  
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='asis'}
+  shinyApp(
+    ui = fluidPage(
+      selectInput("fact_select", label = "Select factor",
+                  choices = all.cats, selected=all.cats[1]),
+      plotOutput("selection")),
+    server = function(input, output){
+      output$selection <- renderPlot({
+        df.simplepnl_RZ <- l.pnl[[input$fact_select]]
+        chart.CumReturns(
+          df.simplepnl_RZ[, grep("GLB", names(df.simplepnl_RZ), value = T)], geometric=F,
+          main=paste("Global PNL for factor", paste(input$fact_select, "RZ", sep=""), paste("(based on ", paste(dep.sel, "R", sep=""),")")),
+          legend.loc="topleft")
+      })
+      }, options = list(heights=500))
+    
+```

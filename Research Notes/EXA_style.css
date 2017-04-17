@@ -1,0 +1,25 @@
+.flat-table {
+  display: block;
+  font-family: sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 115%;
+  overflow: auto;
+  width: auto;
+  border-collapse: collapse;
+}
+  th {
+    background-color: rgb(10, 10, 10);
+    color: white;
+    font-weight: bold;
+    padding: 20px 30px;
+    text-align: center;
+  }
+  td {
+    background-color: rgb(225, 225, 225);
+    color: rgb(65, 65, 65);
+    padding: 5px 5px;
+  }
+  .flat-table, th, td {
+    border: 1px solid black;
+ }
+ 
